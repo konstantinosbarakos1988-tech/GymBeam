@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="el" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ημερολόγιο Βιταμινών | Pro Analytics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] } } } }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #090d16; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 9999px; }
+        
+        @media print {
+            body { background: #ffffff !important; color: #000000 !important; }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            .shadow-lg, .border-slate-800 { box-shadow: none !important; border-color: #e2e8f0 !important; }
+            .text-slate-300, .text-slate-400 { color: #334155 !important; }
+            .text-teal-400, .text-emerald-400 { color: #0f766e !important; font-weight: bold; }
+            #history-section { border: none !important; }
+            .max-h-48 { max-height: none !important; overflow: visible !important; }
+        }
+    </style>
+</head>
+<body class="bg-[#090d16] text-slate-100 min-h-screen font-sans antialiased flex flex-col justify-between selection:bg-teal-500 selection:text-slate-950">
+
+    <header class="bg-slate-900/95 border-b border-slate-800/80 sticky top-0 z-40 px-4 sm:px-6 lg:px-8 py-3 transition-all no-print">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-teal-500 text-slate-950 font-extrabold text-xl flex items-center justify-center">🩺</div>
+                <div>
+                    <h1 class="text-base font-bold text-white">Ημερολόγιο Βιταμινών</h1>
+                    <p class="text-[11px] text-teal-400 font-semibold flex items-center gap-1">Pro Analytics Edition</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2 flex-wrap">
+                <div class="flex items-center gap-1 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 mr-2">
+                    <span class="text-[10px] text-slate-400">⚓ Πλοίο:</span>
+                    <input type="text" id="ship-name-input" onchange="saveShipName(this.value)" placeholder="Όνομα..." class="bg-transparent text-[11px] font-bold text-white w-20 outline-none placeholder-slate-600">
+                </div>
+                <button onclick="window.print()" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-bold transition flex items-center gap-1.5 shadow-sm border border-slate-700">
+                    <span>📄</span> Αναφορά Ιατρού
+                </button>
+                <button onclick="openFullTableModal()" class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold transition flex items-center gap-1.5 shadow-sm">
+                    <span>📋</span> Πίνακας
+                </button>
+                <button onclick="openAddSupplementModal()" class="px-3 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-slate-950 text-[11px] font-bold transition flex items-center gap-1.5">
+                    <span>➕</span> Νέα Προσθήκη
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="hidden print-only p-8 text-center border-b border-slate-200 mb-6">
+        <h1 class="text-2xl font-bold text-slate-900">Ιατρικό Ιστορικό Συμπληρωμάτων</h1>
+        <p class="text-sm text-slate-600 mt-1">GymBeam Protocol & Εξατομικευμένες Λήψεις | Προφίλ: Αθλητής & Νυχτερινές Βάρδιες</p>
+        <p class="text-sm font-bold text-indigo-700 mt-2" id="print-ship-name"></p>
+        <p class="text-xs text-slate-500 mt-2" id="print-date"></p>
+    </div>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full space-y-5 flex-1">
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-5 no-print">
+            <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+                <div>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/60">
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">☑️</span>
+                            <h2 class="text-sm font-bold text-white">Τι ήπιατε σήμερα;</h2>
+                        </div>
+                        <div class="flex items-center gap-1 bg-slate-950 px-2 py-1 rounded-xl border border-slate-800">
+                            <button onclick="changeSelectedDate(-1)" class="w-6 h-6 rounded-md bg-slate-900 hover:bg-slate-800 text-slate-300 flex items-center justify-center text-xs font-bold border border-slate-800">◀</button>
+                            <input type="date" id="log-date-picker" onchange="onDatePickerChange(this.value)" class="bg-transparent text-[11px] font-mono font-bold text-teal-300 focus:outline-none px-1 cursor-pointer">
+                            <button onclick="changeSelectedDate(1)" class="w-6 h-6 rounded-md bg-slate-900 hover:bg-slate-800 text-slate-300 flex items-center justify-center text-xs font-bold border border-slate-800">▶</button>
+                            <button onclick="goToToday()" class="ml-1 px-2 py-1 rounded-md bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[10px] font-bold">Σήμερα</button>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 flex flex-wrap items-center justify-between gap-2 bg-slate-950/60 p-2 rounded-xl border border-slate-800/60">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-semibold text-slate-400 pl-1">Τύπος Ημέρας:</span>
+                            <div class="flex gap-1">
+                                <button id="daymode-training" onclick="setDayMode('training')" class="px-2 py-1 rounded-lg text-[10px] font-bold transition">🏋️ Προπόνηση</button>
+                                <button id="daymode-boat" onclick="setDayMode('boat')" class="px-2 py-1 rounded-lg text-[10px] font-bold transition">⚓ Σκάφος</button>
+                                <button id="daymode-rest" onclick="setDayMode('rest')" class="px-2 py-1 rounded-lg text-[10px] font-bold transition">🛋️ Ξεκούραση</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="boat-sleep-calculator" class="hidden mt-2 p-2.5 rounded-xl bg-indigo-950/30 border border-indigo-500/30 flex flex-wrap items-center gap-3">
+                        <span class="text-[10px] font-bold text-indigo-300">🌙 Στόχος Ύπνου Βάρδιας:</span>
+                        <input type="time" id="target-sleep-time" onchange="calculateMagneTime()" class="bg-slate-900 text-[11px] font-mono font-bold text-white rounded px-2 py-1 border border-indigo-500/50 outline-none focus:border-indigo-400 transition">
+                        <span class="text-[10px] text-slate-300">➔ Λήψη Magne+ στις:</span>
+                        <span id="magne-time-result" class="text-[11px] font-mono font-bold text-emerald-400 bg-emerald-950/40 px-2 py-1 rounded border border-emerald-500/30">--:--</span>
+                    </div>
+
+                    <div class="mt-3 overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/50">
+                        <table class="w-full text-left text-xs">
+                            <thead class="text-[10px] uppercase bg-slate-950 text-slate-500 border-b border-slate-800">
+                                <tr>
+                                    <th class="py-2 px-2 text-center w-10">Λήψη</th>
+                                    <th class="py-2 px-2">Βιταμίνη</th>
+                                    <th class="py-2 px-2 text-center w-16">Δόση</th>
+                                    <th class="py-2 px-2 text-right">Σημείωση</th>
+                                </tr>
+                            </thead>
+                            <tbody id="compact-picker-tbody" class="divide-y divide-slate-800/50"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="mt-3 pt-3 border-t border-slate-800 flex items-center gap-2">
+                    <button onclick="selectRecommendedForDay()" class="px-3 py-1.5 rounded-lg bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[10px] font-bold transition">✨ Αυτόματη Επιλογή</button>
+                    <button onclick="clearCurrentDayLog()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-950/50 text-slate-400 text-[10px] font-bold transition">Μηδενισμός</button>
+                </div>
+            </div>
+
+            <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-800/60 mb-3">
+                        <h2 class="text-sm font-bold text-white flex items-center gap-2"><span>🧠</span> Κάλυψη Αναγκών</h2>
+                        <div class="flex items-center gap-2">
+                            <span id="streak-badge" class="hidden px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">🔥 0 Ήμερες</span>
+                            <span id="overall-score-badge" class="px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-slate-800 text-slate-300">0%</span>
+                        </div>
+                    </div>
+                    <div class="space-y-3" id="coverage-bars-container"></div>
+                    <div class="mt-4 p-3 rounded-xl bg-slate-950/80 border border-slate-800" id="daily-verdict-box"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="history-section" class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800/60 no-print">
+                <h2 class="text-sm font-bold text-white flex items-center gap-2"><span>📊</span> Ιστορικό Καταγραφών</h2>
+                <button onclick="clearAllHistory()" class="px-2 py-1 rounded-lg bg-rose-950/50 text-rose-300 text-[10px] border border-rose-900/50">🗑 Καθαρισμός</button>
+            </div>
+            
+            <div class="mt-3 grid grid-cols-3 sm:grid-cols-7 gap-2 no-print" id="seven-days-strip"></div>
+
+            <div class="mt-4 overflow-x-auto rounded-xl border border-slate-800 max-h-48 overflow-y-auto">
+                <table class="w-full text-left text-[11px] text-slate-300">
+                    <thead class="uppercase bg-slate-950 text-slate-500 font-bold border-b border-slate-800 sticky top-0 print-only-header">
+                        <tr>
+                            <th class="py-2 px-3">Ημερομηνία</th>
+                            <th class="py-2 px-3">Τύπος</th>
+                            <th class="py-2 px-3">Λήψεις / Σκευάσματα</th>
+                            <th class="py-2 px-3 text-center">Κάλυψη</th>
+                            <th class="py-2 px-3 text-right no-print"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-log-tbody" class="divide-y divide-slate-800/50"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <div id="full-table-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 hidden flex flex-col p-4 sm:p-8 no-print">
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-6xl mx-auto rounded-2xl shadow-2xl flex flex-col h-full overflow-hidden relative">
+            <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
+                <h2 class="text-base font-bold text-white">📋 Πλήρης Κλινικός Πίνακας</h2>
+                <button onclick="closeFullTableModal()" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition">Κλείσιμο ✕</button>
+            </div>
+            <div class="p-4 overflow-y-auto flex-1 space-y-6">
+                <div class="overflow-x-auto rounded-xl border border-slate-800">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="text-[10px] uppercase bg-slate-950/90 text-slate-400 font-bold border-b border-slate-800">
+                            <tr>
+                                <th class="py-3 px-3">Σκεύασμα</th>
+                                <th class="py-3 px-3">Ιδιότητες / Σύνθεση</th>
+                                <th class="py-3 px-3">Χρονισμός</th>
+                                <th class="py-3 px-3 text-center">Διαγραφή</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800/80 bg-slate-900/40" id="supplements-full-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="supplement-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="bg-slate-900 border border-slate-700 max-w-sm w-full rounded-2xl p-5 relative text-slate-200">
+            <button onclick="closeModal()" class="absolute top-3 right-3 text-slate-400 hover:text-white text-lg">✕</button>
+            <div id="modal-content"></div>
+        </div>
+    </div>
+
+    <div id="add-supplement-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 no-print">
+        <div class="bg-slate-900 border border-teal-500/40 max-w-sm w-full rounded-2xl p-5 relative text-slate-200">
+            <h3 class="text-sm font-bold mb-3 border-b border-slate-800 pb-2">➕ Νέα Προσθήκη</h3>
+            <form onsubmit="handleAddCustomSupplement(event)" class="space-y-3 text-[11px]">
+                <div>
+                    <input type="text" id="custom-name" oninput="triggerSmartEngine(this.value)" required placeholder="Γράψτε όνομα (π.χ. Πρωτεΐνη, Pre-workout)..." class="w-full px-2 py-2 rounded bg-slate-950 border border-slate-700 text-white focus:border-teal-500 outline-none transition">
+                    <div id="smart-hint" class="hidden mt-1.5 text-[10px] text-teal-300 font-semibold bg-teal-950/30 p-2 rounded-lg border border-teal-500/30 flex items-start gap-1.5"></div>
+                </div>
+                <input type="text" id="custom-dose" required placeholder="Δόση (π.χ. 1 scoop)" class="w-full px-2 py-1.5 rounded bg-slate-950 border border-slate-700 text-white">
+                <select id="custom-axis" class="w-full px-2 py-1.5 rounded bg-slate-950 border border-slate-700 text-white">
+                    <option value="neuro">Μύες / Ύπνος (ΚΝΣ)</option>
+                    <option value="cardio">Καρδιά / Αντιφλεγμονώδες</option>
+                    <option value="immune">Ανοσοποιητικό / Ενέργεια</option>
+                    <option value="joints">Αρθρώσεις / Χόνδροι</option>
+                    <option value="stimulant">Διεγερτικά / Ενέργεια</option>
+                </select>
+                <textarea id="custom-desc" placeholder="Ιδιότητες / Μηχανισμός Δράσης" class="w-full px-2 py-1.5 rounded bg-slate-950 border border-slate-700 text-white h-16 resize-none"></textarea>
+                <input type="hidden" id="custom-icon" value="💊">
+                <div class="flex gap-2 justify-end pt-2">
+                    <button type="button" onclick="closeAddSupplementModal()" class="px-3 py-1.5 rounded bg-slate-800 text-white">Άκυρο</button>
+                    <button type="submit" class="px-3 py-1.5 rounded bg-teal-600 hover:bg-teal-500 text-slate-950 font-bold transition">Αποθήκευση</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const smartEngineDB = [
+            { keys: ['πρωτεινη', 'protein', 'whey'], icon: '💪', axis: 'neuro', dose: '1 Scoop (25-30g)', desc: 'Μυϊκή αναδόμηση.' },
+            { keys: ['κρεατινη', 'creatine'], icon: '⚡', axis: 'neuro', dose: '3-5g', desc: 'Αναπλήρωση ATP, δύναμη.' },
+            { keys: ['ashwagandha'], icon: '🌿', axis: 'neuro', dose: '300-600mg', desc: 'Μειώνει την κορτιζόλη, βελτιώνει ύπνο.' },
+            { keys: ['zinc', 'zma'], icon: '🛡️', axis: 'immune', dose: '15-30mg', desc: 'Ανοσοποιητικό & τεστοστερόνη.' },
+            { keys: ['melatonin', 'μελατονινη'], icon: '🌙', axis: 'neuro', dose: '1-3mg', desc: 'Ρύθμιση κιρκάδιου ρυθμού.' },
+            { keys: ['iron', 'σιδηρος'], icon: '🩸', axis: 'immune', dose: 'Βάσει ιατρού', desc: '⚠️ ΠΡΟΣΟΧΗ: Λήψη μακριά από γαλακτοκομικά/Ασβέστιο.' },
+            { keys: ['caffeine', 'καφεινη', 'pre-workout', 'preworkout'], icon: '☕', axis: 'stimulant', dose: '100-200mg', desc: '⚠️ ΠΡΟΣΟΧΗ: Να αποφεύγεται 6-8 ώρες πριν το Magne+.' },
+            { keys: ['bcaa', 'eaa'], icon: '🧬', axis: 'neuro', dose: '5-10g', desc: 'Αποτροπή μυϊκού καταβολισμού.' }
+        ];
+
+        function triggerSmartEngine(value) {
+            const input = value.toLowerCase().trim();
+            const hintBox = document.getElementById('smart-hint');
+            if(input.length < 3) { hintBox.classList.add('hidden'); return; }
+            const match = smartEngineDB.find(item => item.keys.some(k => input.includes(k)));
+
+            if(match) {
+                document.getElementById('custom-dose').value = match.dose;
+                document.getElementById('custom-axis').value = match.axis;
+                document.getElementById('custom-desc').value = match.desc;
+                document.getElementById('custom-icon').value = match.icon;
+                hintBox.innerHTML = `<span>✨</span><span>Αναγνωρίστηκε: Συμπλήρωση για ${match.keys[0].toUpperCase()}.</span>`;
+                hintBox.classList.remove('hidden');
+            } else {
+                hintBox.classList.add('hidden'); document.getElementById('custom-icon').value = '💊';
+            }
+        }
+
+        const defaultSupplementsData = [
+            { id: 'magnesium', name: 'Magne+', icon: '⚡', axis: 'neuro', dose: '2 κάψουλες', shortGoal: 'Μύες, Ύπνος', timing: '30-45λ πριν τον ύπνο', desc: '187mg Mg, 160mg Vit C, Β-Complex' },
+            { id: 'omega3', name: 'Omega 3', icon: '❤️', axis: 'cardio', dose: '1-2 κάψουλες', shortGoal: 'Καρδιά', timing: 'Πρωί / Ξύπνημα', desc: 'Ιχθυέλαιο EPA & DHA' },
+            { id: 'd3', name: 'Vitamin D3', icon: '☀️', axis: 'immune', dose: '1 κάψουλα', shortGoal: 'Ανοσοποιητικό', timing: 'Στο πρώτο γεύμα', desc: 'Χοληκαλσιφερόλη' },
+            { id: 'glucosamine', name: 'Glucosamine', icon: '🦴', axis: 'joints', dose: '1-2 ταμπλέτες', shortGoal: 'Αρθρώσεις', timing: 'Κυρίως γεύμα', desc: 'Προστασία χόνδρων' },
+            { id: 'curcumin', name: 'Curcumin', icon: '🔥', axis: 'cardio', dose: '1 κάψουλα', shortGoal: 'Πόνος / Φλεγμονή', timing: 'Μετά την προπόνηση', desc: 'Για μυϊκό πόνο (DOMS)' }
+        ];
+
+        let customSupplements = JSON.parse(localStorage.getItem('gymbeam_custom_v4') || '[]');
+        let historyLogs = JSON.parse(localStorage.getItem('gymbeam_history_v4') || '{}');
+        let shipName = localStorage.getItem('gymbeam_ship_name') || '';
+        let selectedDate = getTodayStr();
+
+        function getTodayStr() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+        function getAllSupplements() { return [...defaultSupplementsData, ...customSupplements]; }
+        function getDayLog(date) { return historyLogs[date] || { dayMode: 'training', taken: {} }; }
+        function saveDayLog(date, log) { historyLogs[date] = log; localStorage.setItem('gymbeam_history_v4', JSON.stringify(historyLogs)); }
+
+        function saveShipName(val) {
+            shipName = val.trim();
+            localStorage.setItem('gymbeam_ship_name', shipName);
+            updateShipUI();
+        }
+
+        function updateShipUI() {
+            document.getElementById('ship-name-input').value = shipName;
+            document.getElementById('print-ship-name').textContent = shipName ? `Ναυτολόγηση: M/V ${shipName}` : '';
+        }
+
+        function initApp() { 
+            document.getElementById('log-date-picker').value = selectedDate; 
+            document.getElementById('print-date').textContent = "Εκτύπωση: " + new Date().toLocaleDateString('el-GR');
+            updateShipUI();
+            renderAll(); 
+        }
+
+        function renderAll() { 
+            renderDayModeButtons(); 
+            renderBoatSleepCalc();
+            renderCompactPicker(); 
+            renderClinicalEvaluation(); 
+            renderHistorySection(); 
+            renderFullTable(); 
+        }
+        
+        function onDatePickerChange(val) { if(val) { selectedDate = val; renderAll(); } }
+        function changeSelectedDate(offset) {
+            let d = new Date(selectedDate); d.setDate(d.getDate() + offset);
+            selectedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            document.getElementById('log-date-picker').value = selectedDate; renderAll();
+        }
+        function goToToday() { selectedDate = getTodayStr(); document.getElementById('log-date-picker').value = selectedDate; renderAll(); }
+
+        function setDayMode(mode) { const log = getDayLog(selectedDate); log.dayMode = mode; saveDayLog(selectedDate, log); renderAll(); }
+        function renderDayModeButtons() {
+            const log = getDayLog(selectedDate);
+            ['training', 'boat', 'rest'].forEach(m => {
+                const btn = document.getElementById(`daymode-${m}`);
+                btn.className = `px-2 py-1 rounded-lg text-[10px] font-bold transition ${log.dayMode === m ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400'}`;
+            });
+        }
+
+        function renderBoatSleepCalc() {
+            const log = getDayLog(selectedDate);
+            const calcDiv = document.getElementById('boat-sleep-calculator');
+            if (log.dayMode === 'boat') {
+                calcDiv.classList.remove('hidden');
+                document.getElementById('target-sleep-time').value = log.boatSleepTime || '';
+                calculateMagneTime(false); 
+            } else {
+                calcDiv.classList.add('hidden');
+            }
+        }
+
+        function calculateMagneTime(save = true) {
+            const timeVal = document.getElementById('target-sleep-time').value;
+            const resSpan = document.getElementById('magne-time-result');
+            
+            if(save) {
+                const log = getDayLog(selectedDate);
+                log.boatSleepTime = timeVal;
+                saveDayLog(selectedDate, log);
+            }
+
+            if (!timeVal) { resSpan.textContent = '--:--'; return; }
+            let [hours, minutes] = timeVal.split(':').map(Number);
+            let totalMins = hours * 60 + minutes - 45; 
+            if (totalMins < 0) totalMins += 24 * 60; 
+            let resH = Math.floor(totalMins / 60).toString().padStart(2, '0');
+            let resM = (totalMins % 60).toString().padStart(2, '0');
+            resSpan.textContent = `${resH}:${resM}`;
+        }
+
+        function adjustDoseCount(id, delta) {
+            const log = getDayLog(selectedDate);
+            const current = log.taken[id] || 0;
+            const next = Math.max(0, current + delta);
+            if(next === 0) delete log.taken[id]; else log.taken[id] = next;
+            saveDayLog(selectedDate, log); renderAll();
+        }
+        function toggleCheck(id) { adjustDoseCount(id, (getDayLog(selectedDate).taken[id] ? -100 : 1)); }
+        
+        function selectRecommendedForDay() {
+            const log = getDayLog(selectedDate); log.taken = {};
+            const ids = log.dayMode === 'boat' ? ['magnesium', 'omega3', 'd3'] : ['magnesium', 'omega3', 'd3', 'glucosamine'];
+            ids.forEach(id => log.taken[id] = 1);
+            saveDayLog(selectedDate, log); renderAll();
+        }
+        function clearCurrentDayLog() { const log = getDayLog(selectedDate); log.taken = {}; saveDayLog(selectedDate, log); renderAll(); }
+
+        function renderCompactPicker() {
+            const tbody = document.getElementById('compact-picker-tbody');
+            const log = getDayLog(selectedDate);
+            tbody.innerHTML = getAllSupplements().map(supp => {
+                const count = log.taken[supp.id] || 0;
+                const active = count > 0;
+                return `
+                <tr class="transition ${active ? 'bg-teal-950/30' : ''}">
+                    <td class="py-2 px-2 text-center">
+                        <button onclick="toggleCheck('${supp.id}')" class="w-5 h-5 rounded border ${active ? 'bg-teal-500 border-teal-400 text-slate-950' : 'bg-slate-900 border-slate-600'} text-[10px] font-bold">
+                            ${active ? '✓' : ''}
+                        </button>
+                    </td>
+                    <td class="py-2 px-2">
+                        <span class="text-sm mr-1">${supp.icon}</span>
+                        <button onclick="openModal('${supp.id}')" class="font-bold text-[11px] ${active ? 'text-teal-300' : 'text-white'} hover:underline">${supp.name}</button>
+                    </td>
+                    <td class="py-2 px-2 text-center no-print">
+                        <div class="inline-flex gap-1 bg-slate-900 border border-slate-700 rounded px-1">
+                            <button onclick="adjustDoseCount('${supp.id}', -1)" class="w-4 hover:bg-slate-800 text-slate-400">-</button>
+                            <span class="text-[11px] w-3 text-center ${active ? 'text-teal-300' : 'text-slate-500'}">${count}</span>
+                            <button onclick="adjustDoseCount('${supp.id}', 1)" class="w-4 hover:bg-slate-800 text-slate-400">+</button>
+                        </div>
+                    </td>
+                    <td class="py-2 px-2 text-right text-[10px] text-slate-400">${supp.shortGoal}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function calculateScores(log) {
+            let neuro = log.taken['magnesium'] ? 100 : 0;
+            let cardio = (log.taken['omega3'] ? (log.dayMode==='training'?70:100) : 0) + (log.taken['curcumin'] ? 30 : 0);
+            let immune = log.taken['d3'] ? 100 : 0;
+            let joints = log.dayMode === 'boat' ? (log.taken['glucosamine']||log.taken['omega3'] ? 100 : 50) : (log.taken['glucosamine'] ? 100 : 0);
+            
+            // Διορθωμένο: Προσθήκη πόντων από Custom (AI) Συμπληρώματα
+            const allSupps = getAllSupplements();
+            Object.keys(log.taken).forEach(id => {
+                if (log.taken[id] > 0 && id.startsWith('custom_')) {
+                    const supp = allSupps.find(s => s.id === id);
+                    if (supp) {
+                        if (supp.axis === 'neuro') neuro += 30;
+                        if (supp.axis === 'cardio') cardio += 30;
+                        if (supp.axis === 'immune') immune += 30;
+                        if (supp.axis === 'joints') joints += 30;
+                    }
+                }
+            });
+
+            return {
+                neuro: Math.min(100, neuro),
+                cardio: Math.min(100, cardio),
+                immune: Math.min(100, immune),
+                joints: Math.min(100, joints),
+                total: Math.round((Math.min(100, neuro) + Math.min(100, cardio) + Math.min(100, immune) + Math.min(100, joints)) / 4)
+            };
+        }
+
+        function calculateStreak() {
+            let streak = 0;
+            let d = new Date(selectedDate);
+            d.setDate(d.getDate() - 1); 
+            
+            while(true) {
+                let dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                let log = historyLogs[dStr];
+                if (!log || Object.keys(log.taken).length === 0) break;
+                
+                let scores = calculateScores(log);
+                if (scores.total >= 80) streak++; else break;
+                d.setDate(d.getDate() - 1);
+            }
+            return streak;
+        }
+
+        function renderClinicalEvaluation() {
+            const log = getDayLog(selectedDate);
+            const allSupps = getAllSupplements();
+            const scores = calculateScores(log);
+            
+            const streak = calculateStreak();
+            const streakBadge = document.getElementById('streak-badge');
+            if (streak > 0) {
+                streakBadge.textContent = `🔥 Σερί: ${streak} ημέρες`;
+                streakBadge.classList.remove('hidden');
+            } else {
+                streakBadge.classList.add('hidden');
+            }
+
+            const badge = document.getElementById('overall-score-badge');
+            badge.textContent = `${scores.total}%`;
+            badge.className = `px-2 py-0.5 rounded-md text-[11px] font-mono font-bold ${scores.total>80 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-300'}`;
+
+            document.getElementById('coverage-bars-container').innerHTML = [
+                { l: 'Μύες/Ύπνος', s: scores.neuro }, { l: 'Καρδιά', s: scores.cardio }, { l: 'Ανοσοποιητικό', s: scores.immune }, { l: 'Αρθρώσεις', s: scores.joints }
+            ].map(b => `
+                <div>
+                    <div class="flex justify-between text-[10px] text-slate-400 mb-0.5"><span>${b.l}</span><span>${b.s}%</span></div>
+                    <div class="w-full h-1.5 bg-slate-800 rounded-full"><div class="${b.s>80?'bg-emerald-500':(b.s>40?'bg-amber-500':'bg-rose-500')} h-full" style="width:${b.s}%"></div></div>
+                </div>
+            `).join('');
+
+            let hasStimulant = false;
+            let hasIron = false;
+            Object.keys(log.taken).forEach(id => {
+                let s = allSupps.find(x => x.id === id);
+                if (s && s.axis === 'stimulant') hasStimulant = true;
+                if (s && (s.name.toLowerCase().includes('σιδηρ') || s.name.toLowerCase().includes('iron'))) hasIron = true;
+            });
+
+            const vBox = document.getElementById('daily-verdict-box');
+            if (Object.keys(log.taken).length === 0) {
+                vBox.innerHTML = '<span class="text-[10px] text-slate-400">Επιλέξτε τι ήπιατε για να δείτε το αποτέλεσμα.</span>';
+            } else if (hasStimulant && log.taken['magnesium']) {
+                vBox.innerHTML = '<span class="text-[10px] text-amber-400 font-bold">⚠️ Προσοχή: Πήρατε Διεγερτικό/Pre-workout μαζί με Magne+. Αφήστε τουλάχιστον 6 ώρες κενό για να λειτουργήσει ο ύπνος.</span>';
+            } else if (hasIron) {
+                vBox.innerHTML = '<span class="text-[10px] text-amber-400 font-bold">⚠️ Προσοχή: Επειδή λαμβάνετε Σίδηρο, βεβαιωθείτε ότι δεν φάγατε γαλακτοκομικά (Ασβέστιο) τις τελευταίες 2 ώρες.</span>';
+            } else {
+                vBox.innerHTML = `<span class="text-[10px] text-emerald-400 font-bold">✅ Το πλάνο της ημέρας (${log.dayMode}) είναι βελτιστοποιημένο.</span>`;
+            }
+        }
+
+        function renderHistorySection() {
+            const strip = document.getElementById('seven-days-strip');
+            strip.innerHTML = '';
+            for(let i=6; i>=0; i--) {
+                let d = new Date(); d.setDate(d.getDate()-i);
+                let dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                let log = historyLogs[dStr];
+                let hasData = log && Object.keys(log.taken).length > 0;
+                strip.insertAdjacentHTML('beforeend', `
+                    <button onclick="selectedDate='${dStr}'; document.getElementById('log-date-picker').value='${dStr}'; renderAll();" 
+                        class="p-2 rounded-xl border text-center ${dStr===selectedDate?'bg-teal-900/30 border-teal-500':'bg-slate-900 border-slate-800'} text-[10px]">
+                        <span class="block text-slate-400 mb-1">${dStr.substring(5)}</span>
+                        <span class="${hasData?'text-emerald-400 font-bold':'text-slate-600'}">${hasData?'✓':'—'}</span>
+                    </button>`);
+            }
+
+            document.getElementById('history-log-tbody').innerHTML = Object.keys(historyLogs).sort().reverse().map(dStr => {
+                let log = historyLogs[dStr];
+                if(Object.keys(log.taken).length === 0) return '';
+                let icons = Object.keys(log.taken).map(id => {
+                    let s = getAllSupplements().find(x=>x.id===id); 
+                    return s ? `<span title="${s.name}" class="mr-1">${s.icon} ${s.name}</span>` : '';
+                }).join('<br class="print-only">');
+                
+                let scores = calculateScores(log);
+                let modeIcon = log.dayMode === 'training' ? '🏋️' : (log.dayMode === 'boat' ? '⚓' : '🛋️');
+
+                return `<tr class="border-b border-slate-800/40 print:border-slate-300">
+                    <td class="py-3 px-3 font-mono text-white print:text-black">${dStr}</td>
+                    <td class="py-3 px-3">${modeIcon}</td>
+                    <td class="py-3 px-3 text-[11px] print:text-[10px] print:leading-relaxed text-slate-300 print:text-slate-700">${icons}</td>
+                    <td class="py-3 px-3 text-center ${scores.total>=80?'text-emerald-400 font-bold':'text-amber-400'}">${scores.total}%</td>
+                    <td class="py-3 px-3 text-right no-print"><button onclick="deleteHistory('${dStr}')" class="text-rose-500">✕</button></td>
+                </tr>`;
+            }).join('');
+        }
+
+        function deleteHistory(d) { delete historyLogs[d]; saveDayLog(d, historyLogs); renderAll(); }
+        function clearAllHistory() { if(confirm('Διαγραφή;')) { historyLogs={}; localStorage.removeItem('gymbeam_history_v4'); renderAll(); } }
+
+        function renderFullTable() {
+            document.getElementById('supplements-full-tbody').innerHTML = getAllSupplements().map(item => `
+                <tr class="hover:bg-slate-800/40">
+                    <td class="py-2 px-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm bg-slate-800 p-1.5 rounded">${item.icon}</span>
+                            <span class="font-bold text-white">${item.name}</span>
+                        </div>
+                    </td>
+                    <td class="py-2 px-3 text-[10px] text-slate-400">${item.desc}</td>
+                    <td class="py-2 px-3 text-[10px] text-teal-300">${item.timing || 'Βάσει οδηγιών'}</td>
+                    <td class="py-2 px-3 text-center">
+                        ${item.isCustom ? `<button onclick="deleteCustom('${item.id}')" class="px-2 py-1 rounded bg-rose-900/50 text-rose-300 text-[10px]">✕</button>` : '—'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+        function openFullTableModal() { document.getElementById('full-table-modal').classList.remove('hidden'); }
+        function closeFullTableModal() { document.getElementById('full-table-modal').classList.add('hidden'); }
+
+        function openModal(id) {
+            const item = getAllSupplements().find(s => s.id === id);
+            document.getElementById('modal-content').innerHTML = `
+                <div class="flex items-center gap-2 mb-3"><span class="text-xl">${item.icon}</span><h3 class="font-bold text-lg">${item.name}</h3></div>
+                <div class="text-[11px] space-y-2 text-slate-300">
+                    <p><strong class="text-teal-400">Δόση:</strong> ${item.dose}</p>
+                    <p><strong class="text-teal-400">Ιδιότητες:</strong> ${item.desc}</p>
+                </div>
+            `;
+            document.getElementById('supplement-modal').classList.remove('hidden');
+        }
+        function closeModal() { document.getElementById('supplement-modal').classList.add('hidden'); }
+        
+        function openAddSupplementModal() { 
+            document.getElementById('custom-name').value = '';
+            document.getElementById('custom-dose').value = '';
+            document.getElementById('custom-desc').value = '';
+            document.getElementById('smart-hint').classList.add('hidden');
+            document.getElementById('add-supplement-modal').classList.remove('hidden'); 
+        }
+        function closeAddSupplementModal() { document.getElementById('add-supplement-modal').classList.add('hidden'); }
+        
+        function handleAddCustomSupplement(e) {
+            e.preventDefault();
+            const axisElement = document.getElementById('custom-axis');
+            const axisLabel = axisElement.options[axisElement.selectedIndex].text.split('/')[0].trim();
+
+            customSupplements.push({
+                id: 'custom_' + Date.now(), 
+                isCustom: true,
+                name: document.getElementById('custom-name').value,
+                icon: document.getElementById('custom-icon').value || '💊', 
+                axis: document.getElementById('custom-axis').value,
+                dose: document.getElementById('custom-dose').value,
+                shortGoal: axisLabel, 
+                desc: document.getElementById('custom-desc').value || 'Χειροκίνητη προσθήκη.'
+            });
+            localStorage.setItem('gymbeam_custom_v4', JSON.stringify(customSupplements));
+            closeAddSupplementModal(); renderAll(); e.target.reset();
+        }
+
+        function deleteCustom(id) {
+            customSupplements = customSupplements.filter(s => s.id !== id);
+            localStorage.setItem('gymbeam_custom_v4', JSON.stringify(customSupplements));
+            renderAll();
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
